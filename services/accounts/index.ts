@@ -14,7 +14,7 @@ import {
 } from "type-graphql";
 import { buildFederatedSchema } from "../helper/buildFederatedSchema";
 import { ApolloServer } from "apollo-server";
-import { plainToClass } from "class-transformer";
+import { plainToClass, Type } from "class-transformer";
 import {
   Column,
   Entity,
@@ -34,14 +34,25 @@ import {
 //   userId: string;
 // }
 
-@InputType("UserInput")
+@Directive("@extends")
+@Directive(`@key(fields: "productId")`)
+@ObjectType()
+export class Product {
+  @Directive("@external")
+  @Field()
+  productId: string;
+  @Directive("@external")
+  @Field()
+  userId: string;
+}
+
 @Entity({ name: "user" }) ///Type references
-@Directive(`@key(fields: "id")`) //User type can be connected from other services in the graph through its id field.
+@Directive(`@key(fields: "userId")`) //User type can be connected from other services in the graph through its id field.
 @ObjectType()
 export class User extends BaseEntity {
-  @Field(() => ID, { nullable: true })
-  @PrimaryGeneratedColumn("uuid")
-  id: string;
+  @Field(() => ID)
+  @PrimaryGeneratedColumn()
+  userId: string;
 
   @Field()
   @Column()
@@ -54,17 +65,45 @@ export class User extends BaseEntity {
   @Field()
   @Column()
   birthDate: string;
+
+  // @Type(() => [Product])
+  // @Directive(`@provides(fields: "userId")`)
+  // @Field()
+  // product: Product[];
+}
+
+@InputType("UserInput")
+class UserInput {
+  @Field()
+  username: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  birthDate: string;
 }
 
 @Resolver((of) => User)
 class AccountsResolver {
   @Query((returns) => [User])
-  async user(@Arg("id", { nullable: true }) id: string) {
-    return id ? await User.findOne({ where: { id } }) : await User.find();
+  async user(@Arg("id", { nullable: true }) userId: string) {
+    return userId
+      ? await User.findOne({ where: { userId } })
+      : await User.find();
   }
   @Mutation(() => User)
-  async addUser(@Arg("input") input: User) {
+  async addUser(@Arg("input") input: UserInput) {
     return await User.create(input).save();
+  }
+}
+
+@Resolver((of) => Product)
+export class UserProductsResolver {
+  @Directive(`@requires(fields: "userId")`)
+  @FieldResolver(() => [User])
+  async purchasedBy(@Root() product: Product): Promise<User[]> {
+    return User.find({ where: { userId: product.userId } });
   }
 }
 
@@ -80,10 +119,10 @@ class AccountsResolver {
 //}
 
 export async function resolveUserReference(
-  reference: Pick<User, "id">
+  reference: Pick<User, "userId">
 ): Promise<User> {
   // return users.find((u) => u.id === reference.id)!;
-  return User.findOne({ where: { id: reference.id } });
+  return await User.findOne({ where: { userId: reference.userId } });
 }
 
 const main = async () => {
@@ -100,8 +139,8 @@ const main = async () => {
   });
   const schema = await buildFederatedSchema(
     {
-      resolvers: [AccountsResolver],
-      orphanedTypes: [User],
+      resolvers: [AccountsResolver, UserProductsResolver],
+      orphanedTypes: [User, Product],
     },
     {
       User: { __resolveReference: resolveUserReference },

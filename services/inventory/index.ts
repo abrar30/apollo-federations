@@ -24,12 +24,12 @@ import {
 @Entity({ name: "inventory" })
 @ObjectType()
 @Directive("@extends")
-@Directive(`@key(fields: "upc")`)
+@Directive(`@key(fields: "productId")`)
 export class Product extends BaseEntity {
   @PrimaryColumn()
-  @Field({ nullable: true })
+  @Field()
   @Directive("@external")
-  upc: string;
+  productId: string;
 
   @Field()
   @Directive("@external")
@@ -83,7 +83,7 @@ class InventoryInput {
   @Field()
   inStock: boolean;
   @Field()
-  upc: string;
+  productId: string;
 }
 
 @Resolver((of) => Product)
@@ -105,11 +105,13 @@ export default class ProductResolver {
 }
 
 export async function resolveProductReference(
-  reference: Pick<Product, "upc">
+  reference: Pick<Product, "productId">
 ): Promise<Product | undefined> {
   //const found = Product.find((i) => i.upc === reference.upc);
-  const found = Product.findOne({ where: { upc: reference.upc } });
-
+  const found = await Product.findOne({
+    where: { productId: reference.productId },
+  });
+  // return found;
   if (!found) {
     return;
   }

@@ -19,14 +19,17 @@ import {
   createConnection,
 } from "typeorm";
 
-@InputType("ProductInput")
 @Entity()
-@Directive(`@key(fields: "upc")`)
+@Directive(`@key(fields: "productId")`)
 @ObjectType()
 export default class Product extends BaseEntity {
   @PrimaryGeneratedColumn()
-  @Field({ nullable: true })
-  upc: string;
+  @Field()
+  productId: string;
+
+  @Column()
+  @Field()
+  userId: string;
 
   @Column()
   @Field()
@@ -41,6 +44,21 @@ export default class Product extends BaseEntity {
   weight: number;
 }
 
+@InputType()
+class ProductInput {
+  @Field()
+  userId: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  price: number;
+
+  @Field()
+  weight: number;
+}
+
 @Resolver((of) => Product)
 export class ProductsResolver {
   @Query((returns) => [Product])
@@ -49,20 +67,20 @@ export class ProductsResolver {
     first: number
   ): Promise<Product[]> {
     //  return products.slice(0, first);
-    return Product.find({ take: first });
+    return await Product.find({ take: first });
   }
 
   @Mutation(() => Product)
-  async addProduct(@Arg("input") input: Product) {
+  async addProduct(@Arg("input") input: ProductInput) {
     return await Product.create(input).save();
   }
 }
 
 export async function resolveProductReference(
-  reference: Pick<Product, "upc">
+  reference: Pick<Product, "productId">
 ): Promise<Product | undefined> {
   // return products.find((p) => p.upc === reference.upc);
-  return Product.findOne({ where: { upc: reference.upc } });
+  return await Product.findOne({ where: { id: reference.productId } });
 }
 
 const main = async () => {

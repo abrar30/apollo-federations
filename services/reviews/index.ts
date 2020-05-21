@@ -24,12 +24,12 @@ import {
 } from "typeorm";
 
 @Directive("@extends") //Type extensions
-@Directive(`@key(fields: "id")`)
+@Directive(`@key(fields: "userId")`)
 @ObjectType()
 export class User {
   @Directive("@external")
-  @Field((type) => ID, { nullable: true })
-  id: string;
+  @Field((type) => ID)
+  userId: string;
 
   @Directive("@external")
   @Field()
@@ -37,33 +37,31 @@ export class User {
 }
 
 @Directive("@extends")
-@Directive(`@key(fields: "upc")`)
+@Directive(`@key(fields: "productId")`)
 @ObjectType()
 export class Product {
   @Directive("@external")
-  @Field({ nullable: true })
-  upc: string;
+  @Field()
+  productId: string;
 }
 
 //@InputType("ReviewInput")
 @Entity()
-@Directive(`@key(fields: "id")`)
+@Directive(`@key(fields: "reviewId")`)
 @ObjectType()
 export class Review extends BaseEntity {
   @PrimaryGeneratedColumn()
   @Field((type) => ID, { nullable: true })
-  id: string;
+  reviewId: string;
 
   @Column()
   @Field()
   body: string;
 
   @Column()
-  @Field()
   userId: string;
 
   @Column()
-  @Field()
   productId: string;
 
   @Type(() => User)
@@ -90,15 +88,15 @@ class ReviewInput {
 
 @Resolver((of) => Review)
 export class ReviewsResolver {
-  //@Directive(`@requires(fields: "username")`)
-  // @FieldResolver((returns) => [User])
-  // async author(@Root() review: Review): Promise<User[]> {
-  //   return await  User
+  // @Directive(`@requires(fields: "username")`)
+  // @FieldResolver()
+  // async author(@Root() review: Review): Promise<User> {
+  //   return;
   // }
 
   @Query(() => [Review])
   //@FieldResolver((returns) => [Review])
-  async reviews(): Promise<Review[]> {
+  async getReviews(): Promise<Review[]> {
     return await Review.find();
   }
 
@@ -114,7 +112,8 @@ export class UserReviewsResolver {
   async reviews(@Root() user: User): Promise<Review[]> {
     // console.log("LOL", user.id);
     // return reviews.filter((review) => review.author.id === user.id);
-    return Review.find({ where: { userId: user.id } });
+    return Review.find({ where: { userId: user.userId } });
+    // return;
   }
 }
 
@@ -123,7 +122,7 @@ export class ProductReviewsResolver {
   @FieldResolver(() => [Review])
   async reviews(@Root() product: Product): Promise<Review[]> {
     //return reviews.filter((review) => review.product.upc === product.upc);
-    return Review.find({ where: { productId: product.upc } });
+    return Review.find({ where: { productId: product.productId } });
   }
 }
 
