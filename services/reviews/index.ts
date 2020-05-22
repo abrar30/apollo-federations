@@ -33,9 +33,9 @@ export class User {
   @Field((type) => ID)
   userId: string;
 
-  @Directive("@external")
-  @Field()
-  username: string;
+  // @Directive("@external")
+  // @Field()
+  // username: string;
 }
 
 // extend user from product Service
@@ -54,7 +54,7 @@ export class Product {
 @ObjectType()
 export class Review extends BaseEntity {
   @PrimaryGeneratedColumn()
-  @Field((type) => ID, { nullable: true })
+  @Field((type) => ID)
   reviewId: string;
 
   @Column()
@@ -62,19 +62,22 @@ export class Review extends BaseEntity {
   remarks: string;
 
   @Column()
+  @Field()
   userId: string;
 
   @Column()
+  @Field()
   productId: string;
 
-  @Type(() => User)
-  @Directive(`@provides(fields: "username")`)
-  @Field()
-  author: User;
+  // @Type(() => User)
+  // @Directive(`@provides(fields: "username")`)
+  // @Field()
+  // author: User;
 
-  @Type(() => Product)
-  @Field()
-  product: Product;
+  // @Type(() => Product)
+  // @Directive(`@provides(fields: "productId")`)
+  // @Field()
+  // product: Product;
 }
 
 @InputType()
@@ -125,12 +128,12 @@ export class ProductReviewsResolver {
   }
 }
 
-// export async function resolveReviewReference(
-//   reference: Pick<Review, "reviewId">
-// ): Promise<Review> {
-//   // return users.find((u) => u.id === reference.id)!;
-//   return await Review.findOne({ where: { reviewId: reference.reviewId } });
-// }
+export async function resolveReviewReference(
+  reference: Pick<Review, "reviewId">
+): Promise<Review> {
+  // return users.find((u) => u.id === reference.id)!;
+  return await Review.findOne({ where: { reviewId: reference.reviewId } });
+}
 
 const main = async () => {
   await createConnection({
@@ -144,10 +147,15 @@ const main = async () => {
     logging: true,
     synchronize: true,
   });
-  const schema = await buildFederatedSchema({
-    resolvers: [ReviewsResolver, ProductReviewsResolver, UserReviewsResolver],
-    orphanedTypes: [User, Review, Product],
-  });
+  const schema = await buildFederatedSchema(
+    {
+      resolvers: [ReviewsResolver, ProductReviewsResolver, UserReviewsResolver],
+      orphanedTypes: [User, Review, Product],
+    },
+    {
+      Review: { __resolveReference: resolveReviewReference },
+    }
+  );
 
   const server = new ApolloServer({
     schema,

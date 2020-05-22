@@ -25,19 +25,6 @@ import {
   createConnection,
 } from "typeorm";
 
-// @Directive("@extends")
-// @Directive(`@key(fields: "reviewId")`)
-// @ObjectType()
-// export class Review {
-//   @Directive("@external")
-//   @Field()
-//   reviewId: string;
-
-//   @Directive("@external")
-//   @Field()
-//   userId: string;
-// }
-
 // Extended Entity Product
 @Directive("@extends")
 @Directive(`@key(fields: "productId")`)
@@ -46,6 +33,19 @@ export class Product {
   @Directive("@external")
   @Field()
   productId: string;
+  @Directive("@external")
+  @Field()
+  userId: string;
+}
+
+@Directive("@extends")
+@Directive(`@key(fields: "reviewId")`)
+@ObjectType()
+export class Review {
+  @Directive("@external")
+  @Field((type) => ID)
+  reviewId: string;
+
   @Directive("@external")
   @Field()
   userId: string;
@@ -115,16 +115,16 @@ export class UserProductsResolver {
   }
 }
 
-// @Resolver((of) => Review)
-// export class ReviewUserResolver {
-//   @Directive(`@requires(fields: "userId")`)
-//   @FieldResolver((returns) => User)
-//   async author(@Root() review: Review): Promise<User> {
-//     // console.log("LOL", user.id);
-//     // return reviews.filter((review) => review.author.id === user.id);
-//     return await User.findOne({ where: { userId: review.userId } });
-//   }
-// }
+@Resolver((of) => Review)
+export class ReviewUserResolver {
+  @Directive(`@requires(fields: "userId")`)
+  @FieldResolver((returns) => User)
+  async author(@Root() review: Review): Promise<User> {
+    // console.log("LOL", user.id);
+    // return reviews.filter((review) => review.author.id === user.id);
+    return await User.findOne({ where: { userId: review.userId } });
+  }
+}
 
 // User Resolver Reference
 export async function resolveUserReference(
@@ -151,8 +151,8 @@ const main = async () => {
   //schema
   const schema = await buildFederatedSchema(
     {
-      resolvers: [AccountsResolver, UserProductsResolver],
-      orphanedTypes: [User, Product],
+      resolvers: [AccountsResolver, UserProductsResolver, ReviewUserResolver],
+      orphanedTypes: [User, Product, Review],
     },
     {
       User: { __resolveReference: resolveUserReference },

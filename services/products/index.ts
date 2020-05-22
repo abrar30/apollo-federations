@@ -8,6 +8,9 @@ import {
   Arg,
   Mutation,
   InputType,
+  ID,
+  FieldResolver,
+  Root,
 } from "type-graphql";
 import { buildFederatedSchema } from "../helper/buildFederatedSchema";
 import { ApolloServer } from "apollo-server";
@@ -18,6 +21,19 @@ import {
   PrimaryGeneratedColumn,
   createConnection,
 } from "typeorm";
+
+@Directive("@extends")
+@Directive(`@key(fields: "reviewId")`)
+@ObjectType()
+export class Review {
+  @Directive("@external")
+  @Field((type) => ID)
+  reviewId: string;
+
+  @Directive("@external")
+  @Field()
+  productId: string;
+}
 
 @Entity()
 @Directive(`@key(fields: "productId")`)
@@ -76,6 +92,17 @@ export class ProductsResolver {
   }
 }
 
+@Resolver((of) => Review)
+export class ReviewProductResolver {
+  @Directive(`@requires(fields: "productId")`)
+  @FieldResolver((returns) => Product)
+  async product(@Root() review: Review): Promise<Product> {
+    // console.log("LOL", user.id);
+    // return reviews.filter((review) => review.author.id === user.id);
+    return await Product.findOne({ where: { productId: review.productId } });
+  }
+}
+
 export async function resolveProductReference(
   reference: Pick<Product, "productId">
 ): Promise<Product | undefined> {
@@ -98,8 +125,8 @@ const main = async () => {
 
   const schema = await buildFederatedSchema(
     {
-      resolvers: [ProductsResolver],
-      orphanedTypes: [Product],
+      resolvers: [ProductsResolver, ReviewProductResolver],
+      orphanedTypes: [Product, Review],
     },
     {
       Product: { __resolveReference: resolveProductReference },
