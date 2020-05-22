@@ -23,6 +23,8 @@ import {
   createConnection,
 } from "typeorm";
 
+// extend user from accounts Service
+
 @Directive("@extends") //Type extensions
 @Directive(`@key(fields: "userId")`)
 @ObjectType()
@@ -36,6 +38,7 @@ export class User {
   username: string;
 }
 
+// extend user from product Service
 @Directive("@extends")
 @Directive(`@key(fields: "productId")`)
 @ObjectType()
@@ -45,7 +48,7 @@ export class Product {
   productId: string;
 }
 
-//@InputType("ReviewInput")
+/// Review type Reference
 @Entity()
 @Directive(`@key(fields: "reviewId")`)
 @ObjectType()
@@ -56,7 +59,7 @@ export class Review extends BaseEntity {
 
   @Column()
   @Field()
-  body: string;
+  remarks: string;
 
   @Column()
   userId: string;
@@ -77,7 +80,7 @@ export class Review extends BaseEntity {
 @InputType()
 class ReviewInput {
   @Field()
-  body: string;
+  remarks: string;
 
   @Field()
   userId: string;
@@ -88,12 +91,6 @@ class ReviewInput {
 
 @Resolver((of) => Review)
 export class ReviewsResolver {
-  // @Directive(`@requires(fields: "username")`)
-  // @FieldResolver()
-  // async author(@Root() review: Review): Promise<User> {
-  //   return;
-  // }
-
   @Query(() => [Review])
   //@FieldResolver((returns) => [Review])
   async getReviews(): Promise<Review[]> {
@@ -106,6 +103,7 @@ export class ReviewsResolver {
   }
 }
 
+// Resolve a field reviews under User in account service
 @Resolver((of) => User)
 export class UserReviewsResolver {
   @FieldResolver((returns) => [Review])
@@ -117,6 +115,7 @@ export class UserReviewsResolver {
   }
 }
 
+// Resolve a field reviews under User in account service
 @Resolver((of) => Product)
 export class ProductReviewsResolver {
   @FieldResolver(() => [Review])
@@ -125,6 +124,13 @@ export class ProductReviewsResolver {
     return Review.find({ where: { productId: product.productId } });
   }
 }
+
+// export async function resolveReviewReference(
+//   reference: Pick<Review, "reviewId">
+// ): Promise<Review> {
+//   // return users.find((u) => u.id === reference.id)!;
+//   return await Review.findOne({ where: { reviewId: reference.reviewId } });
+// }
 
 const main = async () => {
   await createConnection({
@@ -154,6 +160,7 @@ const main = async () => {
   });
 };
 main().catch((err) => console.trace(err));
+
 // export const reviews: Review[] = plainToClass(Review, [
 //   {
 //     id: "1",

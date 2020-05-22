@@ -26,14 +26,19 @@ import {
 } from "typeorm";
 
 // @Directive("@extends")
-// @Directive(`@key(fields: "userId")`)
+// @Directive(`@key(fields: "reviewId")`)
 // @ObjectType()
 // export class Review {
+//   @Directive("@external")
+//   @Field()
+//   reviewId: string;
+
 //   @Directive("@external")
 //   @Field()
 //   userId: string;
 // }
 
+// Extended Entity Product
 @Directive("@extends")
 @Directive(`@key(fields: "productId")`)
 @ObjectType()
@@ -72,6 +77,7 @@ export class User extends BaseEntity {
   // product: Product[];
 }
 
+//Input Type
 @InputType("UserInput")
 class UserInput {
   @Field()
@@ -84,6 +90,7 @@ class UserInput {
   birthDate: string;
 }
 
+/// User Resolver
 @Resolver((of) => User)
 class AccountsResolver {
   @Query((returns) => [User])
@@ -98,6 +105,7 @@ class AccountsResolver {
   }
 }
 
+// Product Resolver to add field under product --> purchasedBy
 @Resolver((of) => Product)
 export class UserProductsResolver {
   @Directive(`@requires(fields: "userId")`)
@@ -109,15 +117,16 @@ export class UserProductsResolver {
 
 // @Resolver((of) => Review)
 // export class ReviewUserResolver {
-//   // @Directive(`@requires(fields: "username userId")`)
+//   @Directive(`@requires(fields: "userId")`)
 //   @FieldResolver((returns) => User)
 //   async author(@Root() review: Review): Promise<User> {
 //     // console.log("LOL", user.id);
 //     // return reviews.filter((review) => review.author.id === user.id);
-//     return await User.findOne({ where: { id: review.userId } });
+//     return await User.findOne({ where: { userId: review.userId } });
 //   }
-//}
+// }
 
+// User Resolver Reference
 export async function resolveUserReference(
   reference: Pick<User, "userId">
 ): Promise<User> {
@@ -126,6 +135,7 @@ export async function resolveUserReference(
 }
 
 const main = async () => {
+  //postgres conn
   await createConnection({
     type: "postgres",
     host: "localhost",
@@ -137,6 +147,8 @@ const main = async () => {
     logging: true,
     synchronize: true,
   });
+
+  //schema
   const schema = await buildFederatedSchema(
     {
       resolvers: [AccountsResolver, UserProductsResolver],
@@ -147,6 +159,7 @@ const main = async () => {
     }
   );
 
+  //server
   const server = new ApolloServer({
     schema,
     tracing: false,
@@ -158,6 +171,7 @@ const main = async () => {
   });
 };
 
+//call the main func
 main().catch((err) => console.trace(err));
 
 // export const users: User[] = plainToClass(User, [
